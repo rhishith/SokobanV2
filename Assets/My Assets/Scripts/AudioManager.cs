@@ -7,26 +7,30 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource bgmAudioSource, sfxAudioSource;
     [SerializeField] private AudioClip[] bgms;
     [SerializeField] private AudioClip playerMovementSfx, boxMoveSfx, goalSfx, reverseSfx;
-    [SerializeField] private Slider sfxSlider, bgmSlider;
     [SerializeField] private AudioMixer AudioMixer;
 
-    private void Start()
+    public void SetSfxVolume(Slider sfxSlider)
     {
-        float bgmVolume, sfxVolume;
-        AudioMixer.GetFloat("BGMVolume", out bgmVolume);
+        float sfxVolume;
         AudioMixer.GetFloat("SFXVolume", out sfxVolume);
-        bgmSlider.value = Mathf.Pow(10, bgmVolume);
-        sfxSlider.value = Mathf.Pow(10, sfxVolume);
+        sfxSlider.value = sfxVolume;
     }
 
-    public void ChangeBgmVolume()
+    public void SetBgmVolume(Slider bgmSlider)
     {
-        AudioMixer.SetFloat("BGMVolume", bgmSlider.value);
+        float bgmVolume;
+        AudioMixer.GetFloat("BGMVolume", out bgmVolume);
+        bgmSlider.value = bgmVolume;
     }
 
-    public void ChangeSfxVolume()
+    public void ChangeBgmVolume(Slider slider)
     {
-        AudioMixer.SetFloat("SFXVolume", sfxSlider.value);
+        AudioMixer.SetFloat("BGMVolume", slider.value);
+    }
+
+    public void ChangeSfxVolume(Slider slider)
+    {
+        AudioMixer.SetFloat("SFXVolume", slider.value);
     }
 
     #region Bgm

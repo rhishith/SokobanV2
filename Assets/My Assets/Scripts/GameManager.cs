@@ -11,8 +11,9 @@ public class GameManager : MonoBehaviour
     public GameObject loadingImage;
     public float levelWaitTime = 1.5f; // slightly shorter wait
     public int currentLevelIndex;
-    public bool playerCanMove = true;
     public TextMeshProUGUI currentLevelText;
+    public GameObject pausePanel,startPanel,pauseMenuParent;
+    internal bool playerCanMove = true;
 
     private void Awake()
     {
@@ -26,14 +27,31 @@ public class GameManager : MonoBehaviour
 
     public void NewGame()
     {
+        playerCanMove = true;
         currentLevelIndex = 0;
         StartCoroutine(WaitAndMoveToNextLevel());
+        startPanel.SetActive(false);
     }
 
     public void Continue()
     {
+        playerCanMove = true;
         currentLevelIndex = PlayerPrefs.GetInt("SavedLevel", 0);
         StartCoroutine(WaitAndMoveToNextLevel());
+        startPanel.SetActive(false);
+    }
+
+    public void PauseGame()
+    {
+        playerCanMove = false;
+        pausePanel.SetActive(true);
+        Debug.Log("Game Paused");
+    }
+
+    public void ResumeGame()
+    {
+        playerCanMove = true;
+        pausePanel.SetActive(false);
     }
 
     private IEnumerator WaitAndMoveToNextLevel()
@@ -43,7 +61,13 @@ public class GameManager : MonoBehaviour
         audiomanager.StopBackgroundMusic();
         yield return new WaitForSeconds(levelWaitTime);
         loadingImage.SetActive(false);
+        pauseMenuParent.SetActive(true);
         levelLoader.LoadLevelFromText(currentLevelIndex);
+    }
+
+    public void SaveGame()
+    {
+        PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
     }
 
     public void Quit()
@@ -53,7 +77,7 @@ public class GameManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
+        SaveGame();
         PlayerPrefs.Save();
     }
 }
