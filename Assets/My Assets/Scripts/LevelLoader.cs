@@ -10,30 +10,50 @@ public class LevelLoader : MonoBehaviour
     public TextAsset[] levelFiles;
     public TextMeshProUGUI currentLevelText;
 
+    public void NextLevel()
+    {
+        if (levelFiles == null || levelFiles.Length == 0) return;
+
+        GameManager.instance.currentLevelIndex =
+            (GameManager.instance.currentLevelIndex + 1) % levelFiles.Length;
+
+        LoadLevelFromText(GameManager.instance.currentLevelIndex);
+    }
+
+    public void LoadLevelFromText(int index)
+    {
+        if (levelFiles == null || levelFiles.Length == 0) return;
+        if (index < 0 || index >= levelFiles.Length) index = 0;
+
+        string text = levelFiles[index].text.Replace("\r", "");
+        string[] lines = text.Split('\n');
+        LoadLevel(lines);
+    }
+
     private void LoadLevel(string[] map)
     {
+        Debug.Log(GameManager.instance.currentLevelIndex);
         audioManager.SwitchBackgroundMusic(GameManager.instance.currentLevelIndex);
-        currentLevelText.text = $"Level {GameManager.instance.currentLevelIndex + 1}";
+
         int width = map[0].Length;
         int height = map.Length;
         gridManager.InitGrid(width, height);
 
+        // Clear previous level
         if (levelRoot != null)
         {
             for (int i = levelRoot.childCount - 1; i >= 0; i--)
-            {
                 Destroy(levelRoot.GetChild(i).gameObject);
-            }
         }
 
+        // Instantiate level objects
         for (int y = 0; y < height; y++)
         {
-            string row = map[height - 1 - y]; // Flip Y for Unity coordinates
+            string row = map[height - 1 - y]; // Flip Y
             for (int x = 0; x < width; x++)
             {
                 char c = row[x];
                 Tile tile = new Tile();
-
                 Vector3 pos = gridManager.GridToWorld(new Vector2Int(x, y));
 
                 switch (c)
@@ -80,26 +100,5 @@ public class LevelLoader : MonoBehaviour
                 gridManager.SetTile(new Vector2Int(x, y), tile);
             }
         }
-    }
-
-    public void NextLevel()
-    {
-        if (levelFiles == null || levelFiles.Length == 0)
-        {
-            Debug.Log("NextLevel called but no levelFiles configured.");
-            return;
-        }
-        GameManager.instance.currentLevelIndex = (GameManager.instance.currentLevelIndex + 1) % levelFiles.Length;
-        LoadLevelFromText(GameManager.instance.currentLevelIndex);
-    }
-
-    public void LoadLevelFromText(int index)
-    {
-        if (levelFiles == null || levelFiles.Length == 0) return;
-        if (index < 0 || index >= levelFiles.Length) index = 0;
-        //GameManager.instance.currentLevelIndex = index;
-        var text = levelFiles[GameManager.instance.currentLevelIndex].text.Replace("\r", "");
-        string[] lines = text.Split('\n');
-        LoadLevel(lines);
     }
 }

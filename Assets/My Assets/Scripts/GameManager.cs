@@ -1,14 +1,18 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
+    public AudioManager audiomanager;
     public LevelLoader levelLoader;
     public GridManager gridManager;
     public GameObject loadingImage;
-    public float levelWaitTime = 2f;
+    public float levelWaitTime = 1.5f; // slightly shorter wait
     public int currentLevelIndex;
+    public bool playerCanMove = true;
+    public TextMeshProUGUI currentLevelText;
 
     private void Awake()
     {
@@ -17,31 +21,29 @@ public class GameManager : MonoBehaviour
             instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+        else Destroy(gameObject);
     }
 
     public void NewGame()
     {
-        currentLevelIndex = -1;
-        StartCoroutine(ShowLevelLoadScreenAndLoadLevel());
+        currentLevelIndex = 0;
+        StartCoroutine(WaitAndMoveToNextLevel());
     }
 
     public void Continue()
     {
         currentLevelIndex = PlayerPrefs.GetInt("SavedLevel", 0);
-        StartCoroutine(ShowLevelLoadScreenAndLoadLevel());
+        StartCoroutine(WaitAndMoveToNextLevel());
     }
 
-    private IEnumerator ShowLevelLoadScreenAndLoadLevel()
+    private IEnumerator WaitAndMoveToNextLevel()
     {
+        currentLevelText.text = $"Level {currentLevelIndex + 1}";
         loadingImage.SetActive(true);
-        if (levelLoader != null) levelLoader.NextLevel();
-        else Debug.Log("Level complete. Configure LevelLoader to advance.");
+        audiomanager.StopBackgroundMusic();
         yield return new WaitForSeconds(levelWaitTime);
         loadingImage.SetActive(false);
+        levelLoader.LoadLevelFromText(currentLevelIndex);
     }
 
     public void Quit()
@@ -52,5 +54,6 @@ public class GameManager : MonoBehaviour
     private void OnApplicationQuit()
     {
         PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
+        PlayerPrefs.Save();
     }
 }

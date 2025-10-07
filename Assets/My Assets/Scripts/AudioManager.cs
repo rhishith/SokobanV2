@@ -1,39 +1,64 @@
 using UnityEngine;
+using UnityEngine.Audio;
+using UnityEngine.UI;
 
 public class AudioManager : MonoBehaviour
 {
-    [SerializeField] private AudioSource bgmAudioSource,sfxAudioSource;
+    [SerializeField] private AudioSource bgmAudioSource, sfxAudioSource;
     [SerializeField] private AudioClip[] bgms;
     [SerializeField] private AudioClip playerMovementSfx, boxMoveSfx, goalSfx, reverseSfx;
+    [SerializeField] private Slider sfxSlider, bgmSlider;
+    [SerializeField] private AudioMixer AudioMixer;
 
-    public void SwitchBackgroundMusic(int currentLevel)
+    private void Start()
+    {
+        float bgmVolume, sfxVolume;
+        AudioMixer.GetFloat("BGMVolume", out bgmVolume);
+        AudioMixer.GetFloat("SFXVolume", out sfxVolume);
+        bgmSlider.value = Mathf.Pow(10, bgmVolume);
+        sfxSlider.value = Mathf.Pow(10, sfxVolume);
+    }
+
+    public void ChangeBgmVolume()
+    {
+        AudioMixer.SetFloat("BGMVolume", bgmSlider.value);
+    }
+
+    public void ChangeSfxVolume()
+    {
+        AudioMixer.SetFloat("SFXVolume", sfxSlider.value);
+    }
+
+    #region Bgm
+    internal void SwitchBackgroundMusic(int currentLevel)
     {
         bgmAudioSource.clip = bgms[currentLevel];
         bgmAudioSource.Play();
     }
 
-    public void StopBackgroundMusic()
+    internal void StopBackgroundMusic()
     {
         bgmAudioSource.Stop();
     }
+    #endregion
 
     #region Sfx
-    public void PlayPlayerMovementSfx()
+    internal void PlayPlayerMovementSfx()
     {
         sfxAudioSource.PlayOneShot(playerMovementSfx);
     }
 
-    public void PlayBoxMoveSfx()
+    internal void PlayBoxMoveSfx()
     {
         sfxAudioSource.PlayOneShot(boxMoveSfx);
     }
 
-    public void PlayGoalSfx()
+    internal void PlayGoalSfx()
     {
         sfxAudioSource.PlayOneShot(goalSfx);
     }
 
-    public void PlayUndoSfx()
+    internal void PlayUndoSfx()
     {
         sfxAudioSource.PlayOneShot(reverseSfx);
     }

@@ -11,7 +11,6 @@ public class PlayerController : MonoBehaviour
     public Sprite[] characterViews;
     private SpriteRenderer spriteRenderer;
     private Stack<Tile[,]> undoStack = new Stack<Tile[,]>();
-    private bool playerCanMove = true;
 
     private void Start()
     {
@@ -66,7 +65,7 @@ public class PlayerController : MonoBehaviour
 
         if (targetTile.Type == TileType.Wall) return;
 
-        if (targetTile.Occupier != null && targetTile.Occupier.CompareTag("Box") && playerCanMove)
+        if (targetTile.Occupier != null && targetTile.Occupier.CompareTag("Box") && GameManager.instance.playerCanMove)
         {
             // Try to push box
             Vector2Int boxTarget = targetPos + dir;
@@ -106,7 +105,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (targetTile.Occupier == null && playerCanMove)
+        if (targetTile.Occupier == null && GameManager.instance.playerCanMove)
         {
             SaveUndoState();
             currentTile.Occupier = null;
@@ -117,7 +116,6 @@ public class PlayerController : MonoBehaviour
             newPlayerTile.Occupier = gameObject;
             gridManager.SetTile(playerPos, newPlayerTile);
             audiomanager.PlayPlayerMovementSfx();
-
             CheckWin();
         }
     }
@@ -152,14 +150,15 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator WaitAndMoveToNextLevel()
     {
-        playerCanMove = false;
-        yield return new WaitForSeconds(0.5f);  
+        GameManager.instance.playerCanMove = false;
+        yield return new WaitForSeconds(0.5f);
+        GameManager.instance.currentLevelText.text = $"Level {GameManager.instance.currentLevelIndex + 2}";
+        GameManager.instance.loadingImage.SetActive(true);
         audiomanager.StopBackgroundMusic();
-        //GameManager.instance.loadingImage.SetActive(true);
-        levelLoader.NextLevel();
         yield return new WaitForSeconds(GameManager.instance.levelWaitTime);
-        playerCanMove = true;
-        //GameManager.instance.loadingImage.SetActive(false);
+        GameManager.instance.loadingImage.SetActive(false);
+        levelLoader.NextLevel();
+        GameManager.instance.playerCanMove = true;
     }
 
     void ResyncSceneFromGrid()
