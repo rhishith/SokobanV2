@@ -14,9 +14,7 @@ public class LevelLoader : MonoBehaviour
     {
         if (levelFiles == null || levelFiles.Length == 0) return;
 
-        GameManager.instance.currentLevelIndex =
-            (GameManager.instance.currentLevelIndex + 1) % levelFiles.Length;
-
+        GameManager.instance.currentLevelIndex = (GameManager.instance.currentLevelIndex + 1) % levelFiles.Length;
         LoadLevelFromText(GameManager.instance.currentLevelIndex);
     }
 

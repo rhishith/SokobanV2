@@ -28,7 +28,8 @@ public class GameManager : MonoBehaviour
     public void NewGame()
     {
         playerCanMove = true;
-        currentLevelIndex = 0;
+        //currentLevelIndex = 0;
+        PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
         StartCoroutine(WaitAndMoveToNextLevel());
         startPanel.SetActive(false);
     }
