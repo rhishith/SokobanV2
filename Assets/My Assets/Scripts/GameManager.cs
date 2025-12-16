@@ -1,74 +1,129 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager instance;
-    public AudioManager audiomanager;
-    public LevelLoader levelLoader;
-    public GridManager gridManager;
-    public GameObject loadingImage;
-    public float levelWaitTime = 1.5f; // slightly shorter wait
-    public int currentLevelIndex;
-    public TextMeshProUGUI currentLevelText;
-    public GameObject pausePanel,startPanel,pauseMenuParent;
-    internal bool playerCanMove = true;
+    public static GameManager Instance { get; private set; }
+
+    [Header("Dependencies")]
+    [SerializeField] private AudioManager audioManager;
+    [SerializeField] private LevelLoader levelLoader;
+    [SerializeField] private GridManager gridManager;
+
+    [Header("UI Elements")]
+    [SerializeField] private GameObject loadingImage;
+    [SerializeField] private TextMeshProUGUI currentLevelText;
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private GameObject startPanel;
+    [SerializeField] private GameObject pauseMenuParent;
+
+    [Header("Settings")]
+    [SerializeField] private float levelWaitTime = 1.5f;
+
+    public int CurrentLevelIndex { get; set; }
+    public bool IsPlayerInputEnabled { get; private set; } = true;
+
+    private const string SAVED_LEVEL_KEY = "SavedLevel";
 
     private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else Destroy(gameObject);
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void NewGame()
     {
-        playerCanMove = true;
-        //currentLevelIndex = 0;
-        PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
+        IsPlayerInputEnabled = true;
+        // CurrentLevelIndex = 0; // Uncomment if new game should always start at 0
+        PlayerPrefs.SetInt(SAVED_LEVEL_KEY, CurrentLevelIndex);
         StartCoroutine(WaitAndMoveToNextLevel());
         startPanel.SetActive(false);
     }
 
     public void Continue()
     {
-        playerCanMove = true;
-        currentLevelIndex = PlayerPrefs.GetInt("SavedLevel", 0);
+        IsPlayerInputEnabled = true;
+        CurrentLevelIndex = PlayerPrefs.GetInt(SAVED_LEVEL_KEY, 0);
         StartCoroutine(WaitAndMoveToNextLevel());
         startPanel.SetActive(false);
     }
 
     public void PauseGame()
     {
-        playerCanMove = false;
+        IsPlayerInputEnabled = false;
         pausePanel.SetActive(true);
+        Time.timeScale = 0f; // Optional: Pause physics/time
         Debug.Log("Game Paused");
     }
 
     public void ResumeGame()
     {
-        playerCanMove = true;
+        IsPlayerInputEnabled = true;
         pausePanel.SetActive(false);
+        Time.timeScale = 1f;
+    }
+
+    public void LevelComplete()
+    {
+        if (!IsPlayerInputEnabled) return;
+
+        IsPlayerInputEnabled = false;
+        // Logic to advance level
+        CurrentLevelIndex++; 
+        // Note: Logic in PlayerController was: Wait -> Show Loading -> Load Next.
+        // We will centralize it here.
+        StartCoroutine(LevelCompleteSequence());
+    }
+
+    private IEnumerator LevelCompleteSequence()
+    {
+        yield return new WaitForSeconds(0.5f); // Small delay after win
+        
+        // Update UI for NEXT level
+        currentLevelText.text = $"Level {CurrentLevelIndex + 1}";
+        
+        loadingImage.SetActive(true);
+        audioManager.StopBackgroundMusic();
+        
+        yield return new WaitForSeconds(levelWaitTime);
+        
+        loadingImage.SetActive(false);
+        pauseMenuParent.SetActive(true);
+        
+        // Load the next level
+        levelLoader.LoadLevelFromText(CurrentLevelIndex);
+        
+        IsPlayerInputEnabled = true;
+        SaveGame();
     }
 
     private IEnumerator WaitAndMoveToNextLevel()
     {
-        currentLevelText.text = $"Level {currentLevelIndex + 1}";
+        currentLevelText.text = $"Level {CurrentLevelIndex + 1}";
         loadingImage.SetActive(true);
-        audiomanager.StopBackgroundMusic();
+        audioManager.StopBackgroundMusic();
+        
         yield return new WaitForSeconds(levelWaitTime);
+        
         loadingImage.SetActive(false);
         pauseMenuParent.SetActive(true);
-        levelLoader.LoadLevelFromText(currentLevelIndex);
+        
+        levelLoader.LoadLevelFromText(CurrentLevelIndex);
     }
 
     public void SaveGame()
     {
-        PlayerPrefs.SetInt("SavedLevel", currentLevelIndex);
+        PlayerPrefs.SetInt(SAVED_LEVEL_KEY, CurrentLevelIndex);
+        PlayerPrefs.Save();
     }
 
     public void Quit()
@@ -79,6 +134,5 @@ public class GameManager : MonoBehaviour
     private void OnApplicationQuit()
     {
         SaveGame();
-        PlayerPrefs.Save();
     }
 }

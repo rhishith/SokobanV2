@@ -3,25 +3,36 @@ using UnityEngine;
 
 public class LevelLoader : MonoBehaviour
 {
-    public AudioManager audioManager;
-    public GridManager gridManager;
-    public GameObject floorPrefab, wallPrefab, boxPrefab, goalPrefab, playerPrefab;
-    public Transform levelRoot;
-    public TextAsset[] levelFiles;
-    public TextMeshProUGUI currentLevelText;
+    [Header("Dependencies")]
+    [SerializeField] private AudioManager audioManager;
+    [SerializeField] private GridManager gridManager;
 
-    public void NextLevel()
-    {
-        if (levelFiles == null || levelFiles.Length == 0) return;
+    [Header("Prefabs")]
+    [SerializeField] private GameObject floorPrefab;
+    [SerializeField] private GameObject wallPrefab;
+    [SerializeField] private GameObject boxPrefab;
+    [SerializeField] private GameObject goalPrefab;
+    [SerializeField] private GameObject playerPrefab;
 
-        GameManager.instance.currentLevelIndex = (GameManager.instance.currentLevelIndex + 1) % levelFiles.Length;
-        LoadLevelFromText(GameManager.instance.currentLevelIndex);
-    }
+    [Header("Level Data")]
+    [SerializeField] private Transform levelRoot;
+    [SerializeField] private TextAsset[] levelFiles;
 
     public void LoadLevelFromText(int index)
     {
         if (levelFiles == null || levelFiles.Length == 0) return;
-        if (index < 0 || index >= levelFiles.Length) index = 0;
+        
+        // Wrap index around
+        if (index < 0 || index >= levelFiles.Length)
+        {
+            index = index % levelFiles.Length;
+            if (index < 0) index += levelFiles.Length;
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.CurrentLevelIndex = index;
+        }
 
         string text = levelFiles[index].text.Replace("\r", "");
         string[] lines = text.Split('\n');
@@ -30,73 +41,88 @@ public class LevelLoader : MonoBehaviour
 
     private void LoadLevel(string[] map)
     {
-        Debug.Log(GameManager.instance.currentLevelIndex);
-        audioManager.SwitchBackgroundMusic(GameManager.instance.currentLevelIndex);
+        int currentLevelIndex = GameManager.Instance != null ? GameManager.Instance.CurrentLevelIndex : 0;
+        
+        if (audioManager != null)
+        {
+            audioManager.SwitchBackgroundMusic(currentLevelIndex);
+        }
 
-        int width = map[0].Length;
+        // Map dimensions
         int height = map.Length;
+        int width = 0;
+        foreach (var line in map) if (line.Length > width) width = line.Length;
+
         gridManager.InitGrid(width, height);
 
-        // Clear previous level
+        // Clear previous
         if (levelRoot != null)
         {
             for (int i = levelRoot.childCount - 1; i >= 0; i--)
+            {
                 Destroy(levelRoot.GetChild(i).gameObject);
+            }
         }
 
-        // Instantiate level objects
+        // Build Level
         for (int y = 0; y < height; y++)
         {
-            string row = map[height - 1 - y]; // Flip Y
+            string row = map[height - 1 - y]; // Flip Y because array 0 is top, grid 0 is bottom
             for (int x = 0; x < width; x++)
             {
+                if (x >= row.Length) break; // Handle uneven lines
+
                 char c = row[x];
                 Tile tile = new Tile();
-                Vector3 pos = gridManager.GridToWorld(new Vector2Int(x, y));
+                Vector2Int gridPos = new Vector2Int(x, y);
+                Vector3 worldPos = gridManager.GridToWorld(gridPos);
 
                 switch (c)
                 {
-                    case '#':
+                    case '#': // Wall
                         tile.Type = TileType.Wall;
-                        var wall = Instantiate(wallPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) wall.transform.SetParent(levelRoot, true);
+                        InstantiateObject(wallPrefab, worldPos);
                         break;
-                    case '.':
+                    case '.': // Floor
                         tile.Type = TileType.Floor;
-                        var floor = Instantiate(floorPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) floor.transform.SetParent(levelRoot, true);
+                        InstantiateObject(floorPrefab, worldPos);
                         break;
-                    case 'G':
+                    case 'G': // Goal
                         tile.Type = TileType.Goal;
-                        var floor2 = Instantiate(floorPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) floor2.transform.SetParent(levelRoot, true);
-                        var goal = Instantiate(goalPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) goal.transform.SetParent(levelRoot, true);
+                        InstantiateObject(floorPrefab, worldPos);
+                        InstantiateObject(goalPrefab, worldPos);
                         break;
-                    case 'B':
+                    case 'B': // Box
                         tile.Type = TileType.Box;
-                        var floor3 = Instantiate(floorPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) floor3.transform.SetParent(levelRoot, true);
-                        GameObject box = Instantiate(boxPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) box.transform.SetParent(levelRoot, true);
+                        InstantiateObject(floorPrefab, worldPos);
+                        GameObject box = InstantiateObject(boxPrefab, worldPos);
                         tile.Occupier = box;
                         break;
-                    case 'P':
+                    case 'P': // Player
                         tile.Type = TileType.Player;
-                        var floor4 = Instantiate(floorPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) floor4.transform.SetParent(levelRoot, true);
-                        GameObject player = Instantiate(playerPrefab, pos, Quaternion.identity);
-                        if (levelRoot != null) player.transform.SetParent(levelRoot, true);
+                        InstantiateObject(floorPrefab, worldPos);
+                        GameObject player = InstantiateObject(playerPrefab, worldPos);
+                        
+                        // Initialize Player
                         PlayerController pc = player.GetComponent<PlayerController>();
-                        pc.playerPos = new Vector2Int(x, y);
-                        pc.gridManager = gridManager;
-                        pc.audiomanager = audioManager;
-                        pc.levelLoader = this;
+                        if (pc != null)
+                        {
+                            pc.Initialize(gridManager, audioManager, gridPos);
+                        }
+                        
                         tile.Occupier = player;
                         break;
                 }
-                gridManager.SetTile(new Vector2Int(x, y), tile);
+                gridManager.SetTile(gridPos, tile);
             }
         }
+    }
+
+    private GameObject InstantiateObject(GameObject prefab, Vector3 position)
+    {
+        if (prefab == null) return null;
+        GameObject obj = Instantiate(prefab, position, Quaternion.identity);
+        if (levelRoot != null) obj.transform.SetParent(levelRoot, true);
+        return obj;
     }
 }

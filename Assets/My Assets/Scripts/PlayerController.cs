@@ -8,8 +8,9 @@ public class PlayerController : MonoBehaviour
     
     [Header("Input")]
     [SerializeField] private InputActionAsset inputActionAsset;
-
+    
     private AudioManager audioManager;
+    
     private GridManager gridManager;
     private Vector2Int playerPos;
     
@@ -134,7 +135,7 @@ public class PlayerController : MonoBehaviour
         else if (targetTile.Occupier == null)
         {
             MovePlayer(targetPos, currentTile);
-            audioManager.PlayPlayerMovementSfx();
+            if (audioManager != null) audioManager.PlayPlayerMovementSfx();
             CheckWin();
         }
     }
@@ -166,13 +167,16 @@ public class PlayerController : MonoBehaviour
         boxObj.transform.position = gridManager.GridToWorld(boxTargetPos);
 
         // SFX
-        if (boxTargetTile.Type == TileType.Goal)
+        if (audioManager != null)
         {
-            audioManager.PlayGoalSfx();
-        }
-        else
-        {
-            audioManager.PlayBoxMoveSfx();
+            if (boxTargetTile.Type == TileType.Goal)
+            {
+                audioManager.PlayGoalSfx();
+            }
+            else
+            {
+                audioManager.PlayBoxMoveSfx();
+            }
         }
 
         return true;

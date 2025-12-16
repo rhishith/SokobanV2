@@ -4,67 +4,81 @@ using UnityEngine.UI;
 
 public class AudioManager : MonoBehaviour
 {
-    [SerializeField] private AudioSource bgmAudioSource, sfxAudioSource;
+    [Header("Audio Sources")]
+    [SerializeField] private AudioSource bgmAudioSource;
+    [SerializeField] private AudioSource sfxAudioSource;
+
+    [Header("Audio Clips")]
     [SerializeField] private AudioClip[] bgms;
-    [SerializeField] private AudioClip playerMovementSfx, boxMoveSfx, goalSfx, reverseSfx;
-    [SerializeField] private AudioMixer AudioMixer;
+    [SerializeField] private AudioClip playerMovementSfx;
+    [SerializeField] private AudioClip boxMoveSfx;
+    [SerializeField] private AudioClip goalSfx;
+    [SerializeField] private AudioClip reverseSfx;
+
+    [Header("Mixer")]
+    [SerializeField] private AudioMixer audioMixer;
+
+    private const string BGM_VOLUME_PARAM = "BGMVolume";
+    private const string SFX_VOLUME_PARAM = "SFXVolume";
 
     public void SetSfxVolume(Slider sfxSlider)
     {
-        float sfxVolume;
-        AudioMixer.GetFloat("SFXVolume", out sfxVolume);
-        sfxSlider.value = sfxVolume;
+        if (audioMixer.GetFloat(SFX_VOLUME_PARAM, out float sfxVolume))
+        {
+            sfxSlider.value = sfxVolume;
+        }
     }
 
     public void SetBgmVolume(Slider bgmSlider)
     {
-        float bgmVolume;
-        AudioMixer.GetFloat("BGMVolume", out bgmVolume);
-        bgmSlider.value = bgmVolume;
+        if (audioMixer.GetFloat(BGM_VOLUME_PARAM, out float bgmVolume))
+        {
+            bgmSlider.value = bgmVolume;
+        }
     }
 
     public void ChangeBgmVolume(Slider slider)
     {
-        AudioMixer.SetFloat("BGMVolume", slider.value);
+        audioMixer.SetFloat(BGM_VOLUME_PARAM, slider.value);
     }
 
     public void ChangeSfxVolume(Slider slider)
     {
-        AudioMixer.SetFloat("SFXVolume", slider.value);
+        audioMixer.SetFloat(SFX_VOLUME_PARAM, slider.value);
     }
 
     #region Bgm
-    internal void SwitchBackgroundMusic(int currentLevel)
+    public void SwitchBackgroundMusic(int currentLevel)
     {
-        bgmAudioSource.clip = bgms[currentLevel];
-        bgmAudioSource.Play();
+        if (currentLevel >= 0 && currentLevel < bgms.Length)
+        {
+            bgmAudioSource.clip = bgms[currentLevel];
+            bgmAudioSource.Play();
+        }
+        else
+        {
+            Debug.LogWarning($"Music for level {currentLevel} not found.");
+        }
     }
 
-    internal void StopBackgroundMusic()
+    public void StopBackgroundMusic()
     {
         bgmAudioSource.Stop();
     }
     #endregion
 
     #region Sfx
-    internal void PlayPlayerMovementSfx()
-    {
-        sfxAudioSource.PlayOneShot(playerMovementSfx);
-    }
+    public void PlayPlayerMovementSfx() => PlaySfx(playerMovementSfx);
+    public void PlayBoxMoveSfx() => PlaySfx(boxMoveSfx);
+    public void PlayGoalSfx() => PlaySfx(goalSfx);
+    public void PlayUndoSfx() => PlaySfx(reverseSfx);
 
-    internal void PlayBoxMoveSfx()
+    private void PlaySfx(AudioClip clip)
     {
-        sfxAudioSource.PlayOneShot(boxMoveSfx);
-    }
-
-    internal void PlayGoalSfx()
-    {
-        sfxAudioSource.PlayOneShot(goalSfx);
-    }
-
-    internal void PlayUndoSfx()
-    {
-        sfxAudioSource.PlayOneShot(reverseSfx);
+        if (clip != null)
+        {
+            sfxAudioSource.PlayOneShot(clip);
+        }
     }
     #endregion
 }
