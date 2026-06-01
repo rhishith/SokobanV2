@@ -9,6 +9,7 @@ public enum TileType
     Player
 }
 
+[System.Serializable]
 public struct Tile
 {
     public TileType Type;
@@ -17,5 +18,5 @@ public struct Tile
 
 public class GridSetup : MonoBehaviour
 {
-
+    // Implementation intentionally left empty
 }

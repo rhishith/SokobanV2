@@ -2,12 +2,18 @@ using UnityEngine;
 
 public class CameraScaler : MonoBehaviour
 {
-    public float targetAspect = 16f / 9f; // Reference aspect ratio (1920x1080)
+    [SerializeField] private float targetAspect = 16f / 9f; // Reference aspect ratio (1920x1080)
+    
     private Camera cam;
 
-    void Start()
+    private void Start()
     {
-        cam = Camera.main;
+        cam = GetComponent<Camera>();
+        AdjustCamera();
+    }
+
+    private void AdjustCamera()
+    {
         float windowAspect = (float)Screen.width / (float)Screen.height;
         float scaleHeight = windowAspect / targetAspect;
 
